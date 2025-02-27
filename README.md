@@ -1,0 +1,1 @@
+Ici, on dépose les configurations des services que l'on utilise. Ces différentes configurations sont celles qui fonctionne/ font fonctionner les services en question. Les docker-compose si copier doivent être remis avec leur nom d'origine, c'est-à-dire "docker-compose.yml".
