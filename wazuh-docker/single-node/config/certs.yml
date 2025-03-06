@@ -1,0 +1,19 @@
+nodes:
+  # Wazuh indexer server nodes
+  indexer:
+    - name: wazuh.indexer
+      dns: wazuh.indexer
+      ip: 172.23.222.179
+
+  # Wazuh server nodes
+  # Use node_type only with more than one Wazuh manager
+  server:
+    - name: wazuh.manager
+      dns: wazuh.manager
+      ip: 172.23.222.179
+
+  # Wazuh dashboard node
+  dashboard:
+    - name: wazuh.dashboard
+      dns: wazuh.dashboard
+      ip: 172.23.222.179  
