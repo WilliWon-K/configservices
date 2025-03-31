@@ -10,7 +10,7 @@ instances:
   - localhost    # local connections
   ip:
   - 127.0.0.1
-  - 91.134.72.85
+  - IP_MACHINE
 
 - name: kibana
   dns:
@@ -20,7 +20,7 @@ instances:
   - kibana    # resolved by Fleet, if configured to use the Compose service name
   ip:
   - 127.0.0.1
-  - 91.134.72.85
+  - IP_MACHINE
 
 - name: fleet-server
   dns:
@@ -29,7 +29,7 @@ instances:
   ip:
   - 127.0.0.1
   - ::1
-  - 91.134.72.85
+  - IP_MACHINE
 
 - name: apm-server
   dns:
@@ -38,4 +38,4 @@ instances:
   ip:
   - 127.0.0.1
   - ::1
-  - 91.134.72.85
+  - IP_MACHINE
