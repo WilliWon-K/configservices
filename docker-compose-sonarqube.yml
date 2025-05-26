@@ -42,7 +42,7 @@ services:
       - "1443:1443"  # Port HTTP pour accéder via le navigateur
     volumes:
       - ./nginx.conf:/etc/nginx/nginx.conf
-      - /etc/ssl/certs/talansecu-intermediaire-apps/talansecu-sonarqube:/etc/ssl/certs/talansecu-intermediaire-apps/talansecu-sonarqube
+      - /etc/ssl/certs/tcertif-intermediaire-apps/certif-sonarqube:/etc/ssl/certs/certif-intermediaire-apps/certif-sonarqube
     networks:
       - sonar_network
       - public
