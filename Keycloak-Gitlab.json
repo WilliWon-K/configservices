@@ -16,10 +16,10 @@
     "backchannel.logout.revoke.offline.tokens": "false"
   },
   "redirectUris": [
-    "https://91.134.100.150/users/auth/openid_connect/callback"
+    "https://IP-GITLAB/users/auth/openid_connect/callback"
   ],
   "webOrigins": [
-    "https://91.134.100.150"
+    "https://IP-GITLAB"
   ],
   "protocolMappers": [
     {
