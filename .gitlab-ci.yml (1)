@@ -1,0 +1,135 @@
+stages:
+  - prepare
+  - test-vault
+  - test-cpp
+  - test-python3
+  - sonar_analysis
+  - cleanup
+
+prepare_runner:
+  stage: prepare
+  script:
+    - echo "🔧 Snapshot des paquets initiaux"
+    - dpkg --get-selections | awk '{print $1}' | sort > before.txt
+    - cat before.txt
+  only:
+    - main
+  artifacts:
+    paths:
+      - before.txt
+    expire_in: 1h
+
+test_vault_auth:
+  stage: test-vault
+  id_tokens:
+    VAULT_ID_TOKEN:
+      aud: "https://91.134.72.37:8200"
+  before_script:
+    - apt-get update -qq
+    - apt-get install -y jq
+  script:
+    - echo "=== JWT Token Claims ==="
+    - echo "$VAULT_ID_TOKEN" | cut -d. -f2 | base64 -d 2>/dev/null | jq . || echo "Cannot decode JWT"
+    - echo "=== Test connectivité Vault ==="
+    - curl -k -s "$VAULT_ADDR/v1/sys/health" || echo "Vault non accessible"
+    - echo "=== Authentification Vault via JWT ==="
+    - |
+      VAULT_RESPONSE=$(curl -s -k -X POST \
+        -d "{\"role\":\"$VAULT_AUTH_ROLE_PIPELINE\",\"jwt\":\"$VAULT_ID_TOKEN\"}" \
+        "$VAULT_ADDR/v1/auth/jwt/login")
+
+      VAULT_TOKEN=$(echo "$VAULT_RESPONSE" | jq -r '.auth.client_token')
+
+      if [ -z "$VAULT_TOKEN" ] || [ "$VAULT_TOKEN" = "null" ]; then
+        echo "❌ Échec de l'authentification Vault"
+        exit 1
+      fi
+
+      export VAULT_TOKEN
+      echo "✅ Authentification réussie, token Vault obtenu."
+    - echo "=== Lecture du secret SonarQube depuis Vault ==="
+    - |
+      SECRET_RESPONSE=$(curl -s -k \
+        -H "X-Vault-Token: $VAULT_TOKEN" \
+        "$VAULT_ADDR/v1/sonarqube/data/sonarqube")
+
+      SONAR_TOKEN=$(echo "$SECRET_RESPONSE" | jq -r '.data.data.SONAR_TOKEN')
+      SONAR_HOST_URL=$(echo "$SECRET_RESPONSE" | jq -r '.data.data.SONAR_HOST_URL')
+
+      if [ -z "$SONAR_TOKEN" ] || [ "$SONAR_TOKEN" = "null" ] || [ -z "$SONAR_HOST_URL" ] || [ "$SONAR_HOST_URL" = "null" ]; then
+        echo "❌ Erreur : échec lors de la récupération du token SonarQube ou de l'URL."
+        exit 1
+      fi
+
+      echo "✅ Token SonarQube récupéré."
+      echo "✅ URL SonarQube récupérée."
+
+      echo "SONAR_TOKEN=$SONAR_TOKEN" >> sonar_secrets.env
+      echo "SONAR_HOST_URL=$SONAR_HOST_URL" >> sonar_secrets.env
+      openssl enc -aes-256-cbc -salt -in sonar_secrets.env -out sonar_secrets.env.enc -pass pass:"$ENCRYPTION_KEY"
+  artifacts:
+    paths:
+      - sonar_secrets.env.enc
+    expire_in: 1h
+
+test_cpp_permissions:
+  stage: test-cpp
+  tags:
+    - cpp
+  dependencies:
+    - test_vault_auth
+  script:
+    - echo '#include <iostream>' > main.cpp
+    - echo 'int main() { std::cout << "✅ Permissions C++ OK" << std::endl; return 0; }' >> main.cpp
+    - g++ main.cpp -o main
+    - ./main
+  only:
+    - main
+
+test_python_permissions:
+  stage: test-python3
+  tags:
+    - python3
+  dependencies:
+    - test_vault_auth
+  script:
+    - echo 'print("✅ Permissions Python OK")' > test.py
+    - python3 test.py
+  only:
+    - main
+
+sonar_scan:
+  stage: sonar_analysis
+  dependencies:
+    - test_vault_auth
+  script:
+    - openssl enc -aes-256-cbc -d -in sonar_secrets.env.enc -out sonar_secrets.env -pass pass:"$ENCRYPTION_KEY"
+    - source sonar_secrets.env
+    - sonar-scanner -X -Dsonar.host.url="$SONAR_HOST_URL" -Dsonar.login="$SONAR_TOKEN"
+  only:
+    - main
+
+cleanup_runner:
+  stage: cleanup
+  script:
+    - echo "🧹 Nettoyage runner..."
+    - if [ ! -f before.txt ]; then echo "⚠️ Aucun snapshot de paquets trouvé. Aucun nettoyage effectué." && exit 0; fi
+    - dpkg --get-selections | awk '{print $1}' | sort > after.txt
+    - cat after.txt
+    - comm -13 before.txt after.txt > to-remove.txt
+    - |
+      if [ -s to-remove.txt ]; then
+        echo "⛔ Paquets à supprimer :"
+        cat to-remove.txt
+        apt-get purge -y $(cat to-remove.txt) || true
+        apt-get autoremove -y || true
+        apt-get clean
+      else
+        echo "✅ Aucun paquet supplémentaire à supprimer."
+      fi
+    - rm -f sonar_secrets.env sonar_secrets.env.enc || true
+    - rm -rf ~/.cache ~/.local ~/.npm ~/.sonar || true
+    - echo "✅ Runner nettoyé"
+  when: always
+  only:
+    - main
