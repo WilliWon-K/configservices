@@ -1,0 +1,10 @@
+FROM docker:latest
+
+# Copie des certificats dans le dossier de confiance
+COPY ./certs/gitlab-fullchain.crt /usr/local/share/ca-certificates/gitlab-fullchain.crt
+COPY ./certs/sonarqube-fullchain.crt /usr/local/share/ca-certificates/sonarqube-fullchain.crt
+COPY ./certs/DataIntermediaire.crt /usr/local/share/ca-certificates/
+COPY ./certs/DataRoot.crt /usr/local/share/ca-certificates/
+
+# Mise à jour des certificats CA
+RUN update-ca-certificates
