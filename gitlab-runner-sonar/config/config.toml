@@ -8,9 +8,9 @@ shutdown_timeout = 0
  
 [[runners]]
   name = "runner"
-  url = "https://91.134.100.150"
-  id = 23
-  token = "glrt-zOtkaP2z6F3S52MWUlYq_286MQpwOjMKdDozCnU6OA8.01.170r1rp00"
+  url = #URL du Gitlab
+  id = #ID a modifier
+  token = #token du runner a copier depuis la creation du runner sur Gitlab
   token_obtained_at = 2025-05-12T07:19:53Z
   token_expires_at = 0001-01-01T00:00:00Z
   tls-ca-file = "/usr/local/share/ca-certificates/gitlab-fullchain.crt"
@@ -22,3 +22,37 @@ shutdown_timeout = 0
     [runners.cache.s3]
     [runners.cache.gcs]
     [runners.cache.azure]
+
+#Si executor en mode docker, adapter la partie [[runners]] comme ceci : 
+#[[runners]]
+#  name = "docker-runner"
+#  url = URL du Gitlab
+#  id = ID a modifier
+#  token = token du runner a copier depuis la creation du runner sur Gitlab
+#  token_obtained_at = 2025-05-12T07:19:53Z
+#  token_expires_at = 0001-01-01T00:00:00Z
+#  tls-ca-file = "/usr/local/share/ca-certificates/gitlab-fullchain.crt"
+#  executor = "docker"
+
+#  [runners.custom_build_dir]
+
+#  [runners.docker]
+#    tls_verify = false
+#    image = "91.134.72.37/images-docker/image-docker-cert:1"
+#    privileged = true
+#    disable_entrypoint_overwrite = false
+#    oom_kill_disable = false
+#    disable_cache = false
+#    volumes = [
+#      "/cache",
+#      "/var/run/docker.sock:/var/run/docker.sock",
+#      "/opt/runners/certs:/usr/local/share/ca-certificates:ro",
+#      "/root/.docker/config.json:/root/.docker/config.json:ro"
+#    ]
+#    shm_size = 0
+
+#  [runners.cache]
+#    MaxUploadedArchiveSize = 0
+#    [runners.cache.s3]
+#    [runners.cache.gcs]
+#    [runners.cache.azure]
