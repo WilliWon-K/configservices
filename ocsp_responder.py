@@ -12,19 +12,22 @@ app = Flask(__name__)
 logging.basicConfig(level=logging.INFO)
 
 VAULT_URL = "https://<ip>:<port>/v1/<nom_pki_inter>/cert/" #URL API Vault pour afficher les certificats
+OCSP_RESPONDER_KEY = "/etc/ocsp-server/ocsp-responder-certificate.key"
+OCSP_RESPONDER_CERT = "/etc/ocsp-server/ocsp-responder-certificate.pem"
+ISSUER_CERT = "/etc/ocsp-server/issuer.pem"
 
 # Charge ta clé privée PEM (remplace par ton fichier et mot de passe si besoin)
-with open("/etc/ocsp-server/ocsp-responder-certificate.key", "rb") as key_file:
+with open(OCSP_RESPONDER_KEY, "rb") as key_file:
     private_key = load_pem_private_key(key_file.read(), password=None, backend=default_backend())
 
 # Charge le certificat de l'OCSP responder
-with open("/etc/ocsp-server/ocsp-responder-certificate.pem", "rb") as cert_file:
+with open(OCSP_RESPONDER_CERT, "rb") as cert_file:
     responder_cert = x509.load_pem_x509_certificate(cert_file.read(), backend=default_backend())
 
 # Charge le certificat de l'autorité de certification (CA)
 # Tu dois avoir ce certificat pour créer les réponses OCSP
 try:
-    with open("/etc/ocsp-server/issuer.pem", "rb") as ca_file:
+    with open(ISSUER_CERT, "rb") as ca_file:
         ca_cert = x509.load_pem_x509_certificate(ca_file.read(), backend=default_backend())
 except FileNotFoundError:
     logging.warning("Certificat CA non trouvé, utilisation du responder_cert comme CA")
