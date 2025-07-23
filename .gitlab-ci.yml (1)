@@ -1,26 +1,13 @@
 stages:
-  - prepare
   - test-vault
-  - test-cpp
   - test-python3
   - sonar_analysis
   - cleanup
 
-prepare_runner:
-  stage: prepare
-  script:
-    - echo "🔧 Snapshot des paquets initiaux"
-    - dpkg --get-selections | awk '{print $1}' | sort > before.txt
-    - cat before.txt
-  only:
-    - main
-  artifacts:
-    paths:
-      - before.txt
-    expire_in: 1h
-
 test_vault_auth:
   stage: test-vault
+  tags:
+    - runner
   id_tokens:
     VAULT_ID_TOKEN:
       aud: "https://91.134.72.37:8200"
@@ -72,34 +59,10 @@ test_vault_auth:
       - sonar_secrets.env.enc
     expire_in: 1h
 
-test_cpp_permissions:
-  stage: test-cpp
-  tags:
-    - cpp
-  dependencies:
-    - test_vault_auth
-  script:
-    - echo '#include <iostream>' > main.cpp
-    - echo 'int main() { std::cout << "✅ Permissions C++ OK" << std::endl; return 0; }' >> main.cpp
-    - g++ main.cpp -o main
-    - ./main
-  only:
-    - main
-
-test_python_permissions:
-  stage: test-python3
-  tags:
-    - python3
-  dependencies:
-    - test_vault_auth
-  script:
-    - echo 'print("✅ Permissions Python OK")' > test.py
-    - python3 test.py
-  only:
-    - main
-
 sonar_scan:
   stage: sonar_analysis
+  tags:
+    - runner
   dependencies:
     - test_vault_auth
   script:
@@ -109,27 +72,16 @@ sonar_scan:
   only:
     - main
 
-cleanup_runner:
+reset_runners:
   stage: cleanup
+  tags:
+    - runner-clean
+  before_script:
+  - apk update && apk add --no-cache jq curl bash
   script:
-    - echo "🧹 Nettoyage runner..."
-    - if [ ! -f before.txt ]; then echo "⚠️ Aucun snapshot de paquets trouvé. Aucun nettoyage effectué." && exit 0; fi
-    - dpkg --get-selections | awk '{print $1}' | sort > after.txt
-    - cat after.txt
-    - comm -13 before.txt after.txt > to-remove.txt
-    - |
-      if [ -s to-remove.txt ]; then
-        echo "⛔ Paquets à supprimer :"
-        cat to-remove.txt
-        apt-get purge -y $(cat to-remove.txt) || true
-        apt-get autoremove -y || true
-        apt-get clean
-      else
-        echo "✅ Aucun paquet supplémentaire à supprimer."
-      fi
-    - rm -f sonar_secrets.env sonar_secrets.env.enc || true
-    - rm -rf ~/.cache ~/.local ~/.npm ~/.sonar || true
-    - echo "✅ Runner nettoyé"
-  when: always
+    - chmod +x ./scripts/reset-runners.sh
+    - ./scripts/reset-runners.sh
+  when: always  # S'exécute même si les jobs précédents échouent
+  allow_failure: true  # N'échoue pas la pipeline si le reset échoue
   only:
     - main
