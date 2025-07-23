@@ -12,9 +12,9 @@ app = Flask(__name__)
 logging.basicConfig(level=logging.INFO)
 
 VAULT_URL = "https://<ip>:<port>/v1/<nom_pki_inter>/cert/" #URL API Vault pour afficher les certificats
-OCSP_RESPONDER_KEY = "/etc/ocsp-server/ocsp-responder-certificate.key"
-OCSP_RESPONDER_CERT = "/etc/ocsp-server/ocsp-responder-certificate.pem"
-ISSUER_CERT = "/etc/ocsp-server/issuer.pem"
+OCSP_RESPONDER_KEY = "/etc/ocsp-server/ocsp-responder-certificate.key" #Chemin de la clé du certificat OCSP responder
+OCSP_RESPONDER_CERT = "/etc/ocsp-server/ocsp-responder-certificate.pem" #Chemin du certificat OCSP responder (avec OCSP Signing)
+ISSUER_CERT = "/etc/ocsp-server/issuer.pem" #Chemin du certificat intermédiaire (issuer)
 
 # Charge ta clé privée PEM (remplace par ton fichier et mot de passe si besoin)
 with open(OCSP_RESPONDER_KEY, "rb") as key_file:
