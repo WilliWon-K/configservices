@@ -9,7 +9,7 @@
   "enabled": true,
   "alwaysDisplayInConsole": true,
   "clientAuthenticatorType": "client-secret",
-  "secret": "x1oVctswJoFWSZpGUpPoVFrqil01slEZ",
+  "secret": "SECRET_CLIENT",
   "redirectUris": [
     "https://IP_GITLAB/users/auth/openid_connect/callback"
   ],
