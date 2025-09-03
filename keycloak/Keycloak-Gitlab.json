@@ -2,19 +2,19 @@
   "clientId": "gitlab",
   "name": "GitLab",
   "description": "Authentification GitLab via Keycloak",
-  "rootUrl": "https://91.134.100.150",
+  "rootUrl": "https://IP_GITLAB",
   "adminUrl": "",
-  "baseUrl": "https://91.134.100.150",
+  "baseUrl": "https://IP_GITLAB",
   "surrogateAuthRequired": false,
   "enabled": true,
   "alwaysDisplayInConsole": true,
   "clientAuthenticatorType": "client-secret",
   "secret": "x1oVctswJoFWSZpGUpPoVFrqil01slEZ",
   "redirectUris": [
-    "https://91.134.100.150/users/auth/openid_connect/callback"
+    "https://IP_GITLAB/users/auth/openid_connect/callback"
   ],
   "webOrigins": [
-    "https://91.134.100.150"
+    "https://IP_GITLAB"
   ],
   "notBefore": 0,
   "bearerOnly": false,
@@ -31,7 +31,7 @@
     "oidc.ciba.grant.enabled": "false",
     "client.secret.creation.time": "1752760073",
     "backchannel.logout.session.required": "true",
-    "backchannel.logout.url": "https://91.134.100.150",
+    "backchannel.logout.url": "https://IP_GITLAB",
     "standard.token.exchange.enabled": "false",
     "login_theme": "gitlab-custom",
     "oauth2.device.authorization.grant.enabled": "false",
