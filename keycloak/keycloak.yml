@@ -12,7 +12,7 @@ services:
       - "/home/ubuntu/keycloak/certs/talansecu-keycloak.key:/etc/x509/https/talansecu-keycloak.key"
       - "/home/ubuntu/keycloak/themes:/opt/keycloak/themes"
     environment:
-      - KC_HOSTNAME=91.134.72.37
+      - KC_HOSTNAME=Hostname
       - KC_HTTPS_CERTIFICATE_FILE=/etc/x509/https/talansecu-keycloak.pem
       - KC_HTTPS_CERTIFICATE_KEY_FILE=/etc/x509/https/talansecu-keycloak.key
       - KC_PROXY=edge
