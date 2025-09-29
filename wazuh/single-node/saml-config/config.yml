@@ -1,0 +1,71 @@
+---
+_meta:
+  type: "config"
+  config_version: 2
+
+config:
+  dynamic:
+    http:
+      anonymous_auth_enabled: false
+      xff:
+        enabled: false
+        internalProxies: '192\.168\.0\.10|192\.168\.0\.11'
+    authc:
+      # Configuration SAML (ordre 1 = priorité)
+      saml_auth_domain:
+        description: "Authenticate via SAML"
+        http_enabled: true
+        transport_enabled: false
+        order: 1
+        http_authenticator:
+          type: saml
+          challenge: true
+          config:
+            idp:
+              # CORRECTION: Chemin absolu vers le fichier de métadonnées
+              metadata_file: "/usr/share/wazuh-indexer/opensearch-security/saml/idp-metadata.xml"
+              entity_id: "https://91.134.72.37:8443/realms/applicatif"
+            sp:
+              entity_id: "wazuh-saml"
+              # CORRECTION: ACS URL correcte
+              forceAuthn: false
+            # CORRECTION: URL du dashboard Wazuh
+            kibana_url: "https://91.134.72.85"
+            # CORRECTION: Attribut pour les rôles (doit correspondre au mapper Keycloak)
+            roles_key: "roles"
+            # CORRECTION: Clé d'échange - doit être une chaîne aléatoire
+            exchange_key: "changeme-random-key-12345"
+        authentication_backend:
+          type: noop
+
+      # Authentification interne (backup - ordre 2)
+      basic_internal_auth_domain:
+        description: "Authenticate via HTTP Basic against internal users database"
+        http_enabled: true
+        transport_enabled: true
+        order: 2
+        http_authenticator:
+          type: basic
+          challenge: true
+        authentication_backend:
+          # CORRECTION: 'internal' au lieu de 'intern'
+          type: internal
+
+    authz:
+      # Autorisation via SAML
+      roles_from_saml:
+        description: "Authorize via SAML backend"
+        http_enabled: true
+        transport_enabled: true
+        authorization_backend:
+          type: saml
+          config: {}
+
+      # Autorisation interne (backup)
+      roles_from_internal:
+        description: "Authorize via internal backend"
+        http_enabled: true
+        transport_enabled: true
+        authorization_backend:
+          type: internal
+          config: {}
