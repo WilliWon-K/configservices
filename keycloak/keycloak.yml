@@ -13,7 +13,7 @@ services:
       - "/home/ubuntu/keycloak/themes:/opt/keycloak/themes"
       - "/home/ubuntu/keycloak-logs:/opt/jboss/standalone/logs"
     environment:
-      - KC_HOSTNAME=91.134.72.37
+      - KC_HOSTNAME=IP_MACHINE
       - KC_HTTPS_CERTIFICATE_FILE=/etc/x509/https/talansecu-keycloak.pem
       - KC_HTTPS_CERTIFICATE_KEY_FILE=/etc/x509/https/talansecu-keycloak.key
       - KC_PROXY=edge
