@@ -1,0 +1,89 @@
+#!/bin/bash
+set -euo pipefail
+echo "=== 🔁 Début du reset automatique des runners GitLab ==="
+ 
+# === 📌 Configuration ===
+GITLAB_URL="https://91.134.100.150"
+PROJECT_PATH="alternants/pipeline"
+TOKEN="${PRIVATE_TOKEN:-${CI_JOB_TOKEN:-}}"
+DEBUG=true
+RUNNER_VERSION="1.0.1"
+ 
+declare -A runner_configs=(
+    ["runner"]="image-runner:${RUNNER_VERSION}"
+    ["runner-python3"]="image-runner-python3:${RUNNER_VERSION}"
+)
+ 
+# === 🔍 Récupération PROJECT_ID et PIPELINE_ID ===
+ENCODED_PROJECT_PATH=$(echo "$PROJECT_PATH" | sed 's/\//%2F/g')
+PROJECT_JSON=$(curl -sk --header "PRIVATE-TOKEN: $TOKEN" \
+  "${GITLAB_URL}/api/v4/projects/${ENCODED_PROJECT_PATH}")
+PROJECT_ID=$(echo "$PROJECT_JSON" | jq -r '.id')
+ 
+if [[ -z "$PROJECT_ID" || "$PROJECT_ID" == "null" ]]; then
+  echo "❌ PROJECT_ID introuvable pour '$PROJECT_PATH'"
+  exit 1
+fi
+ 
+PIPELINE_JSON=$(curl -sk --header "PRIVATE-TOKEN: $TOKEN" \
+  "${GITLAB_URL}/api/v4/projects/$PROJECT_ID/pipelines?per_page=1")
+PIPELINE_ID=$(echo "$PIPELINE_JSON" | jq -r '.[0].id')
+ 
+if [[ -z "$PIPELINE_ID" || "$PIPELINE_ID" == "null" ]]; then
+  echo "❌ PIPELINE_ID introuvable"
+  exit 1
+fi
+ 
+[[ "$DEBUG" == true ]] && echo "🆔 PROJECT_ID = $PROJECT_ID | 🔁 PIPELINE_ID = $PIPELINE_ID"
+ 
+# === 🗒️ Récupération des tags ===
+JOBS_JSON=$(curl -sk --header "PRIVATE-TOKEN: $TOKEN" \
+  "${GITLAB_URL}/api/v4/projects/$PROJECT_ID/pipelines/$PIPELINE_ID/jobs")
+USED_TAGS=$(echo "$JOBS_JSON" | jq -r '.[].tag_list[]' | sort -u)
+ 
+[[ "$DEBUG" == true ]] && echo "🏷️ Tags : $USED_TAGS"
+ 
+# === 🛑 Arrêt des runners ===
+echo "🛑 Arrêt des runners utilisés..."
+for tag in $USED_TAGS; do
+  if [[ -n "${runner_configs[$tag]:-}" ]]; then
+    echo "➡️  Suppression de $tag"
+    docker stop "$tag" 2>/dev/null || true
+    docker rm "$tag" 2>/dev/null || true
+  fi
+done
+ 
+echo "⏳ Attente de 5 secondes..."
+sleep 5
+ 
+# === 🚀 Redémarrage (SANS pull car images locales) ===
+echo "🚀 Redémarrage des runners..."
+for tag in $USED_TAGS; do
+  image="${runner_configs[$tag]:-}"
+  if [[ -n "$image" ]]; then
+    # Vérifier que l'image existe localement
+    if docker image inspect "$image" &>/dev/null; then
+      echo "✅ Démarrage de $tag avec l'image locale $image"
+    else
+      echo "❌ Image $image introuvable localement !"
+      continue
+    fi
+    docker run -d \
+        --name "$tag" \
+        --restart always \
+        -v /var/run/docker.sock:/var/run/docker.sock \
+        -v "gitlab-runner-config-${tag##*-}:/etc/gitlab-runner" \
+        "$image"
+  fi
+done
+ 
+# === 🧹 Nettoyage ===
+echo "🧽 Nettoyage..."
+docker volume prune -f || true
+docker image prune -f || true  # Seulement les dangling, PAS les locales
+ 
+echo "⏳ Vérification dans 10s..."
+sleep 10
+ 
+docker ps --filter "name=runner" --format "table {{.Names}}\t{{.Status}}\t{{.Image}}"
+echo "✅ Reset terminé avec succès !"
