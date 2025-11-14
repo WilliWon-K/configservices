@@ -13,7 +13,7 @@ test_vault_auth:
     - runner
   id_tokens:
     VAULT_ID_TOKEN:
-      aud: "https://91.134.72.37:8200"
+      aud: "https://IP_VAULT:8200"
   before_script:
     - apt-get update -qq
     - apt-get install -y jq
@@ -74,8 +74,8 @@ sonar_scan:
     - |
       cat > ~/.pip/pip.conf <<EOF
       [global]
-      index-url = https://91.134.72.37:3443/repository/python-group/simple
-      trusted-host = 91.134.72.37
+      index-url = https://IP_NEXUS:3443/repository/python-group/simple
+      trusted-host = IP_NEXUS
       EOF
     - echo "✅ pip configuré pour utiliser Nexus"
     - python3 -m venv venv
@@ -101,10 +101,10 @@ dependabot:
   tags:
     - runner
   variables:
-    NEXUS_URL: "https://91.134.72.37:3443"
+    NEXUS_URL: "https://IP_NEXUS:3443"
     # ✅ URL CORRECTE avec le / final
-    NEXUS_PYPI_INDEX: "https://91.134.72.37:3443/repository/python-group/simple/"
-    GITLAB_API: "https://91.134.100.150/api/v4"
+    NEXUS_PYPI_INDEX: "https://IP_NEXUS:3443/repository/python-group/simple/"
+    GITLAB_API: "https://IP_GITLAB/api/v4"
     GIT_USER_NAME: "dependabot-bot"
     GIT_USER_EMAIL: "dependabot@example.com"
     BRANCH_NAME: "dependabot-updates"
@@ -117,8 +117,8 @@ dependabot:
     - |
       cat > ~/.pip/pip.conf <<EOF
       [global]
-      index-url = https://91.134.72.37:3443/repository/python-group/simple/
-      trusted-host = 91.134.72.37
+      index-url = https://IP_NEXUS:3443/repository/python-group/simple/
+      trusted-host = IP_NEXUS
       EOF
     - echo "✅ pip configuré pour utiliser Nexus"
     
@@ -159,7 +159,7 @@ dependabot:
         pip config list
         echo ""
         echo "🔍 Test manuel de connexion Nexus:"
-        curl -k -I "https://91.134.72.37:3443/repository/python-group/simple" 2>&1 | head -n 10
+        curl -k -I "https://IP_NEXUS:3443/repository/python-group/simple" 2>&1 | head -n 10
         exit 1
       }
       
@@ -250,7 +250,7 @@ dependabot:
             
             Dépendances détectées depuis le code Python du projet."
             
-            git push -f "https://oauth2:${GITLAB_TOKEN}@91.134.100.150/${CI_PROJECT_PATH}.git" "$BRANCH_NAME"
+            git push -f "https://oauth2:${GITLAB_TOKEN}@IP_GITLAB/${CI_PROJECT_PATH}.git" "$BRANCH_NAME"
             
             echo "🔀 Création de la Merge Request pour le nouveau requirements.txt..."
             MR_RESPONSE=$(curl -k -s --request POST "${GITLAB_API}/projects/${CI_PROJECT_ID}/merge_requests" \
@@ -345,7 +345,7 @@ dependabot:
           ✅ Versions compatibles vérifiées"
           
           echo "⬆️ Push de la branche $BRANCH_NAME..."
-          git push -f "https://oauth2:${GITLAB_TOKEN}@91.134.100.150/${CI_PROJECT_PATH}.git" "$BRANCH_NAME"
+          git push -f "https://oauth2:${GITLAB_TOKEN}@IP_GITLAB/${CI_PROJECT_PATH}.git" "$BRANCH_NAME"
           
           echo "🔀 Création de la Merge Request..."
           MR_RESPONSE=$(curl -k -s --request POST "${GITLAB_API}/projects/${CI_PROJECT_ID}/merge_requests" \
