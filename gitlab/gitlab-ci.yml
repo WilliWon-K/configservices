@@ -1,5 +1,5 @@
 variables:
-  GIT_DEPTH: 0 # Correction du shallow clone pour SonarQube
+  GIT_DEPTH: 0  # ✅ Corrrection du shallow clone pour SonarQube
 
 stages:
   - test-vault
@@ -26,42 +26,42 @@ test_vault_auth:
     - |
       VAULT_RESPONSE=$(curl -s -k -X POST \
         -H "Content-Type: application/json" \
-        -d "{\"role\":\"$VAULT_ATUH_ROLE_PIPELINE\",\"jwt\":\"$VAULT_ID_TOKEN\"}" \
+        -d "{\"role\":\"$VAULT_AUTH_ROLE_PIPELINE\",\"jwt\":\"$VAULT_ID_TOKEN\"}" \
         "$VAULT_ADDR/v1/auth/jwt/login")
-      
+
       VAULT_TOKEN=$(echo "$VAULT_RESPONSE" | jq -r '.auth.client_token')
 
       if [ -z "$VAULT_TOKEN" ] || [ "$VAULT_TOKEN" = "null" ]; then
-        echo " Echec de l'authentification Vault"
+        echo "❌ Échec de l'authentification Vault"
         exit 1
       fi
 
       export VAULT_TOKEN
-      echo "Authentification réussie, token Vault obtenu."
+      echo "✅ Authentification réussie, token Vault obtenu."
     - echo "=== Lecture du secret SonarQube depuis Vault ==="
     - |
-      SECRET_REPONSE=$(curl -s -k \
+      SECRET_RESPONSE=$(curl -s -k \
         -H "X-Vault-Token: $VAULT_TOKEN" \
         "$VAULT_ADDR/v1/sonarqube/data/sonarqube")
-      
-      SONAR_TOKEN=$(echo "$SECRET_RESPONSE" | jq -r '.data.data.SONAR_TOKEN')
-      SONAR_HOST_URL=$(echo "$SECRET_RESPONSE" | jq -r '.datat.data.SONAR_HOST_URL')
 
-      if [ -z "$SONAR_TOKEN" ] || [ "SONAR_TOKEN" = "null" ] || [ -z "$SONAR_HOST_URL" ] || [ "$SONAR_HOST_URL" = "null" ]; then
-        echo "Erreur : échec lors de la récupération du token SonarQube ou de l'URL."
+      SONAR_TOKEN=$(echo "$SECRET_RESPONSE" | jq -r '.data.data.SONAR_TOKEN')
+      SONAR_HOST_URL=$(echo "$SECRET_RESPONSE" | jq -r '.data.data.SONAR_HOST_URL')
+
+      if [ -z "$SONAR_TOKEN" ] || [ "$SONAR_TOKEN" = "null" ] || [ -z "$SONAR_HOST_URL" ] || [ "$SONAR_HOST_URL" = "null" ]; then
+        echo "❌ Erreur : échec lors de la récupération du token SonarQube ou de l'URL."
         exit 1
       fi
 
-      echo "Token SonarQube récupérée."
-      echo "URL SonarQube récupérée."
+      echo "✅ Token SonarQube récupéré."
+      echo "✅ URL SonarQube récupérée."
 
       echo "SONAR_TOKEN=$SONAR_TOKEN" >> sonar_secrets.env
       echo "SONAR_HOST_URL=$SONAR_HOST_URL" >> sonar_secrets.env
       openssl enc -aes-256-cbc -salt -in sonar_secrets.env -out sonar_secrets.env.enc -pass pass:"$ENCRYPTION_KEY"
   artifacts:
     paths:
-      - sonar_secrets.env
-
+      - sonar_secrets.env.enc
+      
 sonar_scan:
   stage: sonar_analysis
   tags:
@@ -74,26 +74,22 @@ sonar_scan:
     - |
       cat > ~/.pip/pip.conf <<EOF
       [global]
-      index-url = "https://91.134.72.37:3443/repository/python-group/simple"
+      index-url = https://91.134.72.37:3443/repository/python-group/simple
       trusted-host = 91.134.72.37
       EOF
-    - echo "pip cofiguré pour utiliser Nexus"
+    - echo "✅ pip configuré pour utiliser Nexus"
     - python3 -m venv venv
     - source venv/bin/activate
     - echo "=== Installation de coverage depuis Nexus ==="
     - pip install --no-cache-dir coverage unittest-xml-reporting
   script:
-   - openssl enc -aes-256-cbc -d -in sonar_secrets.env.enc -out sonar_secrets.env -pass pass:"$ENCRYPTION_KEY"
-   - source sonar_secrets.env
-   - srouce venv/bin/activate
-   - python -m coverage run -m unittest discover -s tests -p 'test_*.py'
-   - python -m coverage xml -o coverage.xml
-   - python -m coverage report
-   - sonar-scanner -Dsonar.host.url="$SONAR_HOST_URL"
-      -Dsonar.login="$SONAR_TOKEN"
-      -Dsonar.python.coverage.reportPaths=coverage.xml
-      -Dsonar.exclusions='**/site-packages/**,**/dist-packages/**,**/__pycache__/**,**/*.pyc'
-      -Dsonar.inclusions='src/**/*.py,test/**/*.py'
+    - openssl enc -aes-256-cbc -d -in sonar_secrets.env.enc -out sonar_secrets.env -pass pass:"$ENCRYPTION_KEY"
+    - source sonar_secrets.env
+    - source venv/bin/activate
+    - python -m coverage run -m unittest discover -s tests -p 'test_*.py'
+    - python -m coverage xml -o coverage.xml
+    - python -m coverage report
+    - sonar-scanner -Dsonar.host.url="$SONAR_HOST_URL" -Dsonar.login="$SONAR_TOKEN" -Dsonar.python.coverage.reportPaths=coverage.xml -Dsonar.exclusions='**/site-packages/**,**/dist-packages/**,**/__pycache__/**,**/*.pyc' -Dsonar.inclusions='src/**/*.py,tests/**/*.py'
   only:
     - main
 
@@ -106,53 +102,32 @@ dependabot:
     - runner
   variables:
     NEXUS_URL: "https://91.134.72.37:3443"
-    NEXUS_PYPI_INDEX: "https://91.134.72.37:3443/repository/python-group/simple"
+    # ✅ URL CORRECTE avec le / final
+    NEXUS_PYPI_INDEX: "https://91.134.72.37:3443/repository/python-group/simple/"
     GITLAB_API: "https://91.134.100.150/api/v4"
     GIT_USER_NAME: "dependabot-bot"
     GIT_USER_EMAIL: "dependabot@example.com"
     BRANCH_NAME: "dependabot-updates"
-    DEPENDABOT_PACKAGE_MANAGER: "pip"
-    # 🔥 PRIORITÉ NUCLÉAIRE NEXUS - Blocage total de PyPI public
-    PIP_INDEX_URL: "https://91.134.72.37:3443/repository/python-group/simple"
-    PIP_TRUSTED_HOST: "91.134.72.37"
-    PIP_NO_INDEX: "false"
-    PIP_DISABLE_PIP_VERSION_CHECK: "1"
   before_script:
     - echo "⚙️ Configuration de l'environnement Dependabot"
-    - apt-get update -qq && apt-get install -y git curl jq
+    - apt-get update -qq && apt-get install -y git curl jq python3 python3-venv python3-pip
     
-    # 🔥 BLOCAGE TOTAL DE PYPI.ORG - PRIORITÉ NUCLÉAIRE NEXUS
-    - echo "🚨 ACTIVATION DU MODE NEXUS PRIORITÉ ABSOLUE 🚨"
+    - echo "=== Configuration pip vers Nexus ==="
+    - mkdir -p ~/.pip
     - |
-      # Suppression de toute référence à PyPI public
-      mkdir -p ~/.pip
       cat > ~/.pip/pip.conf <<EOF
       [global]
-      index-url = https://91.134.72.37:3443/repository/python-group/simple
-      trusted-host = 91.134.72.37
-      no-cache-dir = true
-      disable-pip-version-check = true
-      
-      [install]
+      index-url = https://91.134.72.37:3443/repository/python-group/simple/
       trusted-host = 91.134.72.37
       EOF
-      
-      # Configuration pip via variables d'environnement (triple sécurité)
-      export PIP_INDEX_URL="https://91.134.72.37:3443/repository/python-group/simple"
-      export PIP_TRUSTED_HOST="91.134.72.37"
-      export PYTHON_KEYRING_BACKEND=keyring.backends.null.Keyring
-      
-      # 🔒 Configuration SSL pour certificat auto-signé
-      export CURL_CA_BUNDLE=""
-      export REQUESTS_CA_BUNDLE=""
-      export SSL_CERT_FILE=""
-      pip config set global.cert ""
-      
-      # Vérification de la config pip
-      echo "✅ Configuration pip.conf créée:"
-      cat ~/.pip/pip.conf
-      echo ""
-      
+    - echo "✅ pip configuré pour utiliser Nexus"
+    
+    # 🐍 CRÉATION DU VIRTUAL ENVIRONMENT
+    - echo "🐍 Création du virtual environment Python..."
+    - python3 -m venv venv
+    - source venv/bin/activate
+    - echo "✅ Virtual environment activé"
+    
     - git config --global user.name "$GIT_USER_NAME"
     - git config --global user.email "$GIT_USER_EMAIL"
     - git config --global --add safe.directory "$CI_PROJECT_DIR"
@@ -160,82 +135,31 @@ dependabot:
   script:
     - echo "🚀 Analyse des dépendances Python avec Dependabot (MODE NEXUS ONLY)"
     
-    # 🌐 TEST DE CONNECTIVITÉ NEXUS (BLOQUANT) - Certificat auto-signé OK
+    # 🌐 TEST DE CONNECTIVITÉ NEXUS (style sonar-scan)
     - |
-      echo "🌐 Vérification CRITIQUE de la connectivité à Nexus (certificat auto-signé accepté)..."
+      echo "🌐 Vérification de la connectivité à Nexus..."
+      echo "🔗 URL testée: $NEXUS_PYPI_INDEX"
       
-      # Test de plusieurs URLs possibles pour Nexus PyPI
-      NEXUS_URLS=(
-        "https://91.134.72.37:3443/repository/python-group/simple"
-        "https://91.134.72.37:3443/repository/python-group/simple/"
-        "https://91.134.72.37:3443/repository/python-group"
-        "https://91.134.72.37:3443/repository/python-group/"
-      )
-      
-      WORKING_URL=""
-      for url in "${NEXUS_URLS[@]}"; do
-        echo "🔍 Test de: $url"
-        HTTP_CODE=$(curl -k -s -o /dev/null -w "%{http_code}" --max-time 5 "$url")
-        echo "   → HTTP $HTTP_CODE"
-        
-        if [ "$HTTP_CODE" = "200" ] || [ "$HTTP_CODE" = "301" ] || [ "$HTTP_CODE" = "302" ]; then
-          WORKING_URL="$url"
-          echo "   ✅ Cette URL fonctionne !"
-          break
-        fi
-      done
-      
-      if [ -z "$WORKING_URL" ]; then
-        echo ""
-        echo "❌ ❌ ❌ ERREUR CRITIQUE: Aucune URL Nexus valide trouvée"
-        echo ""
-        echo "🔍 URLs testées:"
-        for url in "${NEXUS_URLS[@]}"; do
-          echo "  - $url"
-        done
-        echo ""
-        echo "💡 Solutions possibles:"
-        echo "  1. Vérifiez dans Nexus UI → Repositories → python-group → Copy URL"
-        echo "  2. L'URL correcte devrait ressembler à:"
-        echo "     https://91.134.72.37:3443/repository/python-group/simple"
-        echo "  3. Ou sans /simple:"
-        echo "     https://91.134.72.37:3443/repository/python-group"
-        echo ""
-        echo "🔍 Test manuel détaillé de l'URL principale:"
-        curl -k -v "https://91.134.72.37:3443/repository/python-group/simple" 2>&1 | head -n 40
-        exit 1
+      # Test simple comme dans sonar-scan
+      if curl -k -s --max-time 10 "$NEXUS_PYPI_INDEX" > /dev/null 2>&1; then
+        echo "✅ Nexus accessible"
+      else
+        echo "⚠️ Nexus potentiellement inaccessible, mais on continue (comme sonar-scan)"
       fi
-      
-      echo ""
-      echo "✅ ✅ ✅ Nexus est accessible via: $WORKING_URL"
-      echo "🔒 Certificat auto-signé accepté avec -k/--insecure"
-      
-      # Mise à jour de la variable pour utiliser l'URL qui fonctionne
-      export NEXUS_PYPI_INDEX="$WORKING_URL"
-      export PIP_INDEX_URL="$WORKING_URL"
-      pip config set global.index-url "$WORKING_URL"
-      
-      echo "🔧 Configuration mise à jour avec l'URL fonctionnelle"
     
-    # 📦 INSTALLATION DE pip-tools DEPUIS NEXUS UNIQUEMENT
+    # 📦 INSTALLATION DE pip-tools DEPUIS NEXUS (style sonar-scan)
     - |
-      echo "📥 Installation de pip-tools EXCLUSIVEMENT depuis Nexus (certificat auto-signé accepté)..."
-      echo "🔗 Source: $NEXUS_PYPI_INDEX"
+      echo "📥 Installation de pip-tools depuis Nexus..."
+      echo "=== Installation depuis Nexus ==="
       
-      # Installation avec désactivation de la vérification SSL
-      pip install \
-        --index-url "$NEXUS_PYPI_INDEX" \
-        --trusted-host "91.134.72.37" \
-        --no-cache-dir \
-        --disable-pip-version-check \
-        pip-tools -v 2>&1 || {
-        echo "❌ ERREUR: Impossible d'installer pip-tools depuis Nexus"
-        echo "🔍 Diagnostic:"
-        echo "  - URL utilisée: $NEXUS_PYPI_INDEX"
-        echo "  - Test curl direct du package pip-tools:"
-        curl -k -s "$NEXUS_PYPI_INDEX/pip-tools/" 2>&1 | head -n 20 || echo "Package pip-tools introuvable sur Nexus"
+      # Installation simple comme dans sonar-scan
+      pip install --no-cache-dir pip-tools 2>&1 || {
+        echo "❌ ERREUR: Impossible d'installer pip-tools"
+        echo "🔍 Configuration pip actuelle:"
+        pip config list
         echo ""
-        echo "💡 Vérifiez que pip-tools est bien disponible sur votre Nexus PyPI proxy/group"
+        echo "🔍 Test manuel de connexion Nexus:"
+        curl -k -I "https://91.134.72.37:3443/repository/python-group/simple" 2>&1 | head -n 10
         exit 1
       }
       
@@ -365,22 +289,17 @@ dependabot:
         echo "📝 requirements.in créé depuis requirements.txt"
       fi
       
-      echo "🔄 Compilation avec pip-compile (SOURCE: NEXUS UNIQUEMENT)"
+      echo "🔄 Compilation avec pip-compile (depuis Nexus, comme sonar-scan)"
       echo "🔗 Index: $NEXUS_PYPI_INDEX"
       
-      # Compilation avec TOUS les flags Nexus + certificat auto-signé OK
+      # Compilation simple (pip utilisera automatiquement la config ~/.pip/pip.conf)
       pip-compile \
-        --index-url "$NEXUS_PYPI_INDEX" \
-        --trusted-host "91.134.72.37" \
         --upgrade \
         --verbose \
-        --no-header \
         --allow-unsafe \
         --output-file "${DEPS_FILE}.new" \
         requirements.in 2>&1 || \
       pip-compile \
-        --index-url "$NEXUS_PYPI_INDEX" \
-        --trusted-host "91.134.72.37" \
         --upgrade \
         --verbose \
         --allow-unsafe \
@@ -449,7 +368,7 @@ dependabot:
       else
         echo "⚠️ Fichier .new non généré - vérifiez les logs ci-dessus"
       fi
-     
+      
   rules:
     - when: always
   allow_failure: true
@@ -459,10 +378,11 @@ reset_runners:
   tags:
     - runner-clean
   before_script:
-    - apt update && apt install jq curl bash
+    - apk update
+    - apk add --no-cache jq curl bash
   script:
-    - chmod +x ./scripts/reset-runner.sh
-    - ./scripts/reset-runner.sh
+    - chmod +x ./scripts/reset-runners.sh
+    - ./scripts/reset-runners.sh
   when: always
   allow_failure: true
   only:
