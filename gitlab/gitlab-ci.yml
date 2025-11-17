@@ -102,7 +102,6 @@ dependabot:
     - runner
   variables:
     NEXUS_URL: "https://IP_NEXUS:3443"
-    # ✅ URL CORRECTE avec le / final
     NEXUS_PYPI_INDEX: "https://IP_NEXUS:3443/repository/python-group/simple/"
     GITLAB_API: "https://IP_GITLAB/api/v4"
     GIT_USER_NAME: "dependabot-bot"
@@ -144,7 +143,7 @@ dependabot:
       if curl -k -s --max-time 10 "$NEXUS_PYPI_INDEX" > /dev/null 2>&1; then
         echo "✅ Nexus accessible"
       else
-        echo "⚠️ Nexus potentiellement inaccessible, mais on continue (comme sonar-scan)"
+        echo "⚠️ Nexus potentiellement inaccessible, mais on continue"
       fi
     
     # 📦 INSTALLATION DE pip-tools DEPUIS NEXUS (style sonar-scan)
@@ -152,7 +151,7 @@ dependabot:
       echo "📥 Installation de pip-tools depuis Nexus..."
       echo "=== Installation depuis Nexus ==="
       
-      # Installation simple comme dans sonar-scan
+      # Installation simple
       pip install --no-cache-dir pip-tools 2>&1 || {
         echo "❌ ERREUR: Impossible d'installer pip-tools"
         echo "🔍 Configuration pip actuelle:"
@@ -273,9 +272,9 @@ dependabot:
         fi
       fi
     
-    # 🔄 ANALYSE ET MISE À JOUR DES DÉPENDANCES (MODE NEXUS ONLY)
+    # 🔄 ANALYSE ET MISE À JOUR DES DÉPENDANCES
     - |
-      echo "📦 Analyse de $DEPS_FILE avec NEXUS UNIQUEMENT"
+      echo "📦 Analyse de $DEPS_FILE avec NEXUS"
       echo "📄 Contenu actuel de $DEPS_FILE:"
       cat "$DEPS_FILE"
       echo ""
