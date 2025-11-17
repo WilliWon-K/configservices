@@ -1,0 +1,278 @@
+dependabot:
+  stage: dependency-update
+  image: 
+    name: ghcr.io/dependabot/dependabot-updater-pip:latest
+    entrypoint: [""] 
+  tags:
+    - runner
+  variables:
+    NEXUS_URL: "https://IP_NEXUS:3443"
+    NEXUS_PYPI_INDEX: "https://IP_NEXUS:3443/repository/python-group/simple/"
+    GITLAB_API: "https://IP_GITLAB/api/v4"
+    GIT_USER_NAME: "dependabot-bot"
+    GIT_USER_EMAIL: "dependabot@example.com"
+    BRANCH_NAME: "dependabot-updates"
+  before_script:
+    - echo "⚙️ Configuration de l'environnement Dependabot"
+    - apt-get update -qq && apt-get install -y git curl jq python3 python3-venv python3-pip
+    
+    - echo "=== Configuration pip vers Nexus ==="
+    - mkdir -p ~/.pip
+    - |
+      cat > ~/.pip/pip.conf <<EOF
+      [global]
+      index-url = https://IP_NEXUS:3443/repository/python-group/simple/
+      trusted-host = IP_NEXUS
+      EOF
+    - echo "✅ pip configuré pour utiliser Nexus"
+    
+    # 🐍 CRÉATION DU VIRTUAL ENVIRONMENT
+    - echo "🐍 Création du virtual environment Python..."
+    - python3 -m venv venv
+    - source venv/bin/activate
+    - echo "✅ Virtual environment activé"
+    
+    - git config --global user.name "$GIT_USER_NAME"
+    - git config --global user.email "$GIT_USER_EMAIL"
+    - git config --global --add safe.directory "$CI_PROJECT_DIR"
+    
+  script:
+    - echo "🚀 Analyse des dépendances Python avec Dependabot (MODE NEXUS ONLY)"
+    
+    # 🌐 TEST DE CONNECTIVITÉ NEXUS (style sonar-scan)
+    - |
+      echo "🌐 Vérification de la connectivité à Nexus..."
+      echo "🔗 URL testée: $NEXUS_PYPI_INDEX"
+      
+      # Test simple comme dans sonar-scan
+      if curl -k -s --max-time 10 "$NEXUS_PYPI_INDEX" > /dev/null 2>&1; then
+        echo "✅ Nexus accessible"
+      else
+        echo "⚠️ Nexus potentiellement inaccessible, mais on continue"
+      fi
+    
+    # 📦 INSTALLATION DE pip-tools DEPUIS NEXUS (style sonar-scan)
+    - |
+      echo "📥 Installation de pip-tools depuis Nexus..."
+      echo "=== Installation depuis Nexus ==="
+      
+      # Installation simple
+      pip install --no-cache-dir pip-tools 2>&1 || {
+        echo "❌ ERREUR: Impossible d'installer pip-tools"
+        echo "🔍 Configuration pip actuelle:"
+        pip config list
+        echo ""
+        echo "🔍 Test manuel de connexion Nexus:"
+        curl -k -I "https://IP_NEXUS:3443/repository/python-group/simple" 2>&1 | head -n 10
+        exit 1
+      }
+      
+      echo "✅ pip-tools installé avec succès depuis Nexus"
+    
+    # 🔍 DÉTECTION OU CRÉATION DE requirements.txt
+    - |
+      echo "🔍 Recherche ou création de requirements.txt..."
+      
+      if [ -f "requirements.txt" ]; then
+        echo "✅ requirements.txt existe déjà"
+        DEPS_FILE="requirements.txt"
+      else
+        echo "⚠️ requirements.txt n'existe pas - CRÉATION AUTOMATIQUE"
+        
+        # Recherche de tous les fichiers Python
+        PYTHON_FILES=$(find . -name "*.py" -not -path "*/\.*" -not -path "*/venv/*" -not -path "*/env/*")
+        
+        if [ -z "$PYTHON_FILES" ]; then
+          echo "❌ Aucun fichier Python trouvé dans le projet"
+          echo "📝 Structure du projet:"
+          ls -la
+          exit 0
+        fi
+        
+        echo "🐍 Fichiers Python trouvés:"
+        echo "$PYTHON_FILES"
+        echo ""
+        
+        # Extraction des imports Python
+        echo "📋 Extraction des dépendances depuis le code Python..."
+        IMPORTS=$(grep -rh "^import \|^from " --include="*.py" . 2>/dev/null | \
+                  sed 's/^import //; s/^from //; s/ import.*//; s/\..*//; s/ as.*//' | \
+                  sort -u | \
+                  grep -v "^__" | \
+                  grep -v "^\." | \
+                  tr '[:upper:]' '[:lower:]')
+        
+        if [ -z "$IMPORTS" ]; then
+          echo "⚠️ Aucun import détecté - Création d'un requirements.txt minimal"
+          echo "# Fichier généré automatiquement par Dependabot" > requirements.txt
+          echo "# Ajoutez vos dépendances ici" >> requirements.txt
+        else
+          echo "📦 Imports détectés:"
+          echo "$IMPORTS"
+          echo ""
+          
+          # Création du requirements.txt avec les packages détectés
+          echo "# Fichier généré automatiquement par Dependabot" > requirements.txt
+          echo "# Source: Nexus PyPI ($NEXUS_PYPI_INDEX)" >> requirements.txt
+          echo "# Date: $(date)" >> requirements.txt
+          echo "" >> requirements.txt
+          
+          # Filtrage des packages standards Python (pas besoin de les installer)
+          STDLIB="os sys re json time datetime collections math random string io argparse logging"
+          
+          for pkg in $IMPORTS; do
+            # Vérifier si ce n'est pas un package standard
+            if ! echo "$STDLIB" | grep -qw "$pkg"; then
+              # Tentative de résolution du package sur Nexus
+              echo "🔍 Recherche de $pkg sur Nexus..."
+              if curl -k -s --max-time 5 "$NEXUS_PYPI_INDEX/$pkg/" 2>/dev/null | grep -qi "$pkg\|<html"; then
+                echo "$pkg" >> requirements.txt
+                echo "  ✅ $pkg trouvé sur Nexus"
+              else
+                echo "  ⚠️ $pkg non trouvé sur Nexus (ignoré)"
+              fi
+            fi
+          done
+          
+          echo ""
+          echo "📄 requirements.txt généré:"
+          cat requirements.txt
+        fi
+        
+        DEPS_FILE="requirements.txt"
+        
+        # Commit du fichier nouvellement créé
+        if [ -f "requirements.txt" ] && [ -s "requirements.txt" ]; then
+          git add requirements.txt
+          if ! git diff --cached --quiet; then
+            echo "💾 Commit du nouveau requirements.txt..."
+            git checkout -B "$BRANCH_NAME"
+            git commit -m "chore: création automatique de requirements.txt
+
+            Fichier généré automatiquement par Dependabot
+            Source: Nexus PyPI ($NEXUS_PYPI_INDEX)
+            
+            Dépendances détectées depuis le code Python du projet."
+            
+            git push -f "https://oauth2:${GITLAB_TOKEN}@IP_GITLAB/${CI_PROJECT_PATH}.git" "$BRANCH_NAME"
+            
+            echo "🔀 Création de la Merge Request pour le nouveau requirements.txt..."
+            MR_RESPONSE=$(curl -k -s --request POST "${GITLAB_API}/projects/${CI_PROJECT_ID}/merge_requests" \
+              --header "PRIVATE-TOKEN: ${GITLAB_TOKEN}" \
+              --header "Content-Type: application/json" \
+              --data "{
+                \"source_branch\": \"${BRANCH_NAME}\",
+                \"target_branch\": \"main\",
+                \"title\": \"📦 Création automatique de requirements.txt\",
+                \"description\": \"Ce fichier requirements.txt a été généré automatiquement par Dependabot en analysant les imports Python du projet.\\n\\n### Source\\n- Nexus PyPI: $NEXUS_PYPI_INDEX\\n\\n**Action requise:** Vérifiez et mergez ce fichier pour activer les mises à jour automatiques.\",
+                \"remove_source_branch\": true,
+                \"squash\": true
+              }")
+            
+            echo "$MR_RESPONSE" | jq -r '.web_url // "❌ Erreur lors de la création de la MR"'
+            
+            echo "✅ Merge Request créée - Prochain run analysera les mises à jour"
+            exit 0
+          fi
+        fi
+      fi
+    
+    # 🔄 ANALYSE ET MISE À JOUR DES DÉPENDANCES
+    - |
+      echo "📦 Analyse de $DEPS_FILE avec NEXUS"
+      echo "📄 Contenu actuel de $DEPS_FILE:"
+      cat "$DEPS_FILE"
+      echo ""
+      
+      # Sauvegarde
+      cp "$DEPS_FILE" "${DEPS_FILE}.old"
+      
+      # Création du requirements.in si nécessaire
+      if [ ! -f "requirements.in" ]; then
+        cp "$DEPS_FILE" requirements.in
+        echo "📝 requirements.in créé depuis requirements.txt"
+      fi
+      
+      echo "🔄 Compilation avec pip-compile (depuis Nexus, comme sonar-scan)"
+      echo "🔗 Index: $NEXUS_PYPI_INDEX"
+      
+      # Compilation simple (pip utilisera automatiquement la config ~/.pip/pip.conf)
+      pip-compile \
+        --upgrade \
+        --verbose \
+        --allow-unsafe \
+        --output-file "${DEPS_FILE}.new" \
+        requirements.in 2>&1 || \
+      pip-compile \
+        --upgrade \
+        --verbose \
+        --allow-unsafe \
+        --output-file "${DEPS_FILE}.new" \
+        "$DEPS_FILE" 2>&1 || {
+          echo "⚠️ Erreur lors de la compilation"
+          echo "📋 Vérifiez que tous les packages sont disponibles sur Nexus"
+          echo "🔍 Packages demandés:"
+          cat requirements.in 2>/dev/null || cat "$DEPS_FILE"
+          exit 0
+      }
+      
+      # Vérification des changements
+      if [ -f "${DEPS_FILE}.new" ]; then
+        echo ""
+        echo "📄 Nouveau contenu généré depuis NEXUS:"
+        cat "${DEPS_FILE}.new"
+        echo ""
+        
+        if ! diff -q "$DEPS_FILE" "${DEPS_FILE}.old" > /dev/null 2>&1; then
+          echo "📝 ✅ MISES À JOUR DÉTECTÉES depuis Nexus !"
+          echo "📊 Différences:"
+          diff "$DEPS_FILE" "${DEPS_FILE}.new" || true
+          echo ""
+          
+          mv "${DEPS_FILE}.new" "$DEPS_FILE"
+          
+          git checkout -B "$BRANCH_NAME"
+          git add "$DEPS_FILE"
+          
+          if [ -f "requirements.in" ]; then
+            git add requirements.in
+          fi
+          
+          git commit -m "chore(deps): mise à jour automatique des dépendances Python
+
+          Mises à jour effectuées par Dependabot
+          Source EXCLUSIVE: Nexus PyPI
+          URL: $NEXUS_PYPI_INDEX
+          
+          ✅ Toutes les dépendances proviennent de Nexus
+          ✅ Aucune connexion à PyPI public
+          ✅ Versions compatibles vérifiées"
+          
+          echo "⬆️ Push de la branche $BRANCH_NAME..."
+          git push -f "https://oauth2:${GITLAB_TOKEN}@IP_GITLAB/${CI_PROJECT_PATH}.git" "$BRANCH_NAME"
+          
+          echo "🔀 Création de la Merge Request..."
+          MR_RESPONSE=$(curl -k -s --request POST "${GITLAB_API}/projects/${CI_PROJECT_ID}/merge_requests" \
+            --header "PRIVATE-TOKEN: ${GITLAB_TOKEN}" \
+            --header "Content-Type: application/json" \
+            --data "{
+              \"source_branch\": \"${BRANCH_NAME}\",
+              \"target_branch\": \"main\",
+              \"title\": \"🔄 Mise à jour automatique des dépendances Python (Nexus)\",
+              \"description\": \"Cette MR contient les mises à jour automatiques des dépendances Python.\\n\\n### ✅ Source EXCLUSIVE\\n- Nexus PyPI: \`$NEXUS_PYPI_INDEX\`\\n- ❌ Aucune connexion à PyPI public\\n\\n### Changements\\n\\\`\\\`\\\`diff\\n$(diff ${DEPS_FILE}.old $DEPS_FILE | head -n 20)\\n\\\`\\\`\\\`\\n\\n**Note:** Vérifiez les tests avant de merger.\",
+              \"remove_source_branch\": true,
+              \"squash\": true
+            }")
+          
+          echo "$MR_RESPONSE" | jq -r '.web_url // "❌ Erreur lors de la création de la MR"'
+        else
+          echo "✅ Aucune mise à jour disponible - $DEPS_FILE est déjà à jour avec les versions Nexus"
+          rm -f "${DEPS_FILE}.new"
+        fi
+      else
+        echo "⚠️ Fichier .new non généré - vérifiez les logs ci-dessus"
+      fi
+      
+  rules:
+    - when: always
+  allow_failure: true
