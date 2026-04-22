@@ -1,0 +1,7 @@
+46000 Configuration du pare-feu
+46001 Profil
+46002 État
+46003 Stratégie de pare-feu
+46004 Règles de pare-feu locales
+46005 Nom du fichier
+46006 Taille maximale du fichier

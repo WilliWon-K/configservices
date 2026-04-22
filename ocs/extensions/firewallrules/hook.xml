@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- Mandatory first XML node -->
+<hookstore>
+    <hook type="lang">
+        <value>en_GB</value>
+    </hook>
+    <hook type="cdentry">
+        <identifier>cd_firewallrules</identifier>
+        <translation>1234</translation>
+        <category>network</category>
+        <available>firewallrules</available>
+    </hook>
+</hookstore>

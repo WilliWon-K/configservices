@@ -1,0 +1,13 @@
+{
+    "displayName" : "Listening Ports",
+    "author" : ["Antoine ROBIN"],
+    "contributor" : ["Aaron Johnson"],
+    "supportedAgent" : ["Windows"],
+    "version" : "1.0",
+    "licence" : "GPLv2",
+    "description" : 
+        {
+            "en" : "Gather Listening ports",
+            "fr" : "Liste les ports en écoute"
+        }
+    }

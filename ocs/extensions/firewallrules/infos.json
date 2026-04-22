@@ -1,0 +1,13 @@
+{
+    "displayName" : "Firewall Rules",
+    "author" : ["Léa DROGUET"],
+    "contributor" : ["Malika MEBROUK"],
+    "supportedAgent" : ["Unix", "Windows"],
+    "version" : "2.1",
+    "licence" : "GPLv2",
+    "description" : 
+        {
+            "fr" : "Remonte les règles firewall",
+            "en" : "Retrieve firewall rules"
+        }
+    }

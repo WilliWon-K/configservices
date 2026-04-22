@@ -1,0 +1,20 @@
+{
+  "displayName": "Firewall Configuration",
+  "author": [
+    "Djily SARR"
+  ],
+  "contributor": [
+    "Gilles DUBOIS",
+    "Aaron JOHNSON",
+    "Charlène AUGER"
+  ],
+  "supportedAgent": [
+    "Windows"
+  ],
+  "version": "1.0",
+  "licence": "GPLv2",
+  "description": {
+    "fr": "Remonte la configuration du pare-feu",
+    "en": "Retrieve the firewall configuration"
+  }
+}
