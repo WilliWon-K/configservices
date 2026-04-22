@@ -1,0 +1,6 @@
+52000 PostgreSQL Information
+52001 Cluster name
+52002 PostgreSQL version
+52003 PostgreSQL port
+52004 Databases
+52005 Role
