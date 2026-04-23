@@ -1,0 +1,144 @@
+global:
+  scrape_interval: 15s
+  evaluation_interval: 15s
+
+rule_files:
+  - /etc/prometheus/rules/*.yml
+
+scrape_configs:
+
+  # Prometheus lui-même
+  - job_name: "prometheus"
+    static_configs:
+      - targets: ["prometheus:9090"]
+
+  # Machine (CPU, RAM, Disk, Network)
+  - job_name: "node_exporter_vmsecu4"
+    static_configs:
+      - targets: ["10.100.0.114:9100"]
+        labels:
+          team: "securite"
+          env: "linux"
+
+  - job_name: "node_exporter_vmsecu2"
+    static_configs:
+      - targets: ["10.100.0.166:9100"]
+        labels:
+          team: "securite"
+          env: "linux"
+
+  - job_name: "node_exporter_vm-inventaire"
+    static_configs:
+      - targets: ["10.100.0.113:9100"]
+        labels:
+          team: "securite"
+          env: "linux"
+
+  - job_name: "node_exporter_irisdev"
+    static_configs:
+      - targets: ["10.100.0.245:9100"]
+        labels:
+          team: "csdata"
+          env: "linux"
+
+  - job_name: "node_exporter_gitlab"
+    static_configs:
+      - targets: ["10.100.0.98:9100"]
+        labels:
+          team: "csdata"
+          env: "linux"
+
+  - job_name: "node_exporter_serveur_mdm"
+    static_configs:
+      - targets: ["10.100.0.226:9100"]
+        labels:
+          team: "csdata"
+          env: "windows"
+
+  - job_name: "node_exporter_serveur_bo"
+    static_configs:
+      - targets: ["10.100.0.210:9100"]
+        labels:
+          team: "csdata"
+          env: "windows"
+
+  - job_name: "node_exporter_oracle_server"
+    static_configs:
+      - targets: ["10.100.0.9:9100"]
+        labels:
+          team: "csdata"
+          env: "windows"
+
+  - job_name: "node_exporter_serveur_odi"
+    static_configs:
+      - targets: ["10.100.0.133:9100"]
+        labels:
+          team: "csdata"
+          env: "windows"
+
+  - job_name: "node_exporter_gateway_vnf"
+    static_configs:
+      - targets: ["10.100.0.87:9100"]
+        labels:
+          team: "csdata"
+          env: "windows"
+
+  - job_name: "node_exporter_rpa_uipath"
+    static_configs:
+      - targets: ["10.100.0.202:9100"]
+        labels:
+          team: "securite"
+          env: "windows"
+
+  # Vérification UP / DOWN des dockers
+  - job_name: "docker-custom-exporter"
+    static_configs:
+      - targets:
+          - "10.100.0.114:9101" # vmsecu4
+          - "10.100.0.166:9101" # vmsecu2
+          - "10.100.0.113:9101" # vm-inventaire
+
+  # Supervision BDD PostgreSQL
+  - job_name: "postgres_exporter_vm-inventaire"
+    static_configs:
+      - targets: ["10.100.0.113:9187"]
+        labels:
+          team: "securite"
+
+  # Supervision sites & certificats SSL / TLS
+  - job_name: "blackbox_ssl"
+    metrics_path: /probe
+    params:
+      module: [https_2xx]
+    static_configs:
+      - targets:
+          - https://5.196.245.236:3000
+        labels:
+          service: "Grafana"
+      - targets:
+          - https://91.134.72.37:1443
+        labels:
+          service: "SonarQube"
+      - targets:
+          - https://5.196.245.236
+        labels:
+          service: "Wazuh"
+      - targets:
+          - https://91.134.72.37:8443
+        labels:
+          service: "Keycloak"
+      - targets:
+          - https://91.134.72.37:3443
+        labels:
+          service: "Nexus"
+      - targets:
+          - https://91.134.72.37
+        labels:
+          service: "Harbor"
+    relabel_configs:
+      - source_labels: [__address__]
+        target_label: __param_target
+      - source_labels: [__param_target]
+        target_label: instance
+      - target_label: __address__
+        replacement: 10.100.0.114:9115
