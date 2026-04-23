@@ -1,0 +1,28 @@
+version: "2.4"
+
+services:
+  gitlab:
+    image: gitlab/gitlab-ee:18.11.1-ee.0
+    restart: always
+    privileged: true
+
+    environment:
+      GITLAB_OMNIBUS_CONFIG: |
+        gitlab_rails['gitlab_shell_ssh_port'] = 222
+
+    volumes:
+      # /etc/gitlab contiendra ton gitlab.rb existant (copié à l'étape de migration)
+      - /mnt/gitlab-data/config:/etc/gitlab
+      - /mnt/gitlab-data/logs:/var/log/gitlab
+      - /mnt/gitlab-data/data:/var/opt/gitlab
+
+    ports:
+      - "443:443"   # HTTPS (Nginx GitLab)
+      - "80:80"     # HTTP
+      - "222:22"     # SSH Git
+      - "4567:4567" # GitLab Container Registry (si activé)
+      - "5005:5005" # GitLab Container Registry (legacy)
+      - "5000:5000" # Registry
+      - "8150:8150" # Port custom (à vérifier selon usage)
+
+    shm_size: '256m'
