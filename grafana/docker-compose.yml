@@ -29,7 +29,7 @@ services:
       - GF_SERVER_PROTOCOL=https
       - GF_SERVER_CERT_FILE=/etc/grafana/grafana.crt
       - GF_SERVER_CERT_KEY=/etc/grafana/grafana.key
-      - GF_SERVER_ROOT_URL=https://5.196.245.236:3000
+      - GF_SERVER_ROOT_URL=https://ROOT_URL:3000
     networks:
       - monitoring
     ports:
