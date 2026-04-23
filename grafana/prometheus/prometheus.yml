@@ -13,95 +13,95 @@ scrape_configs:
       - targets: ["prometheus:9090"]
 
   # Machine (CPU, RAM, Disk, Network)
-  - job_name: "node_exporter_vmsecu4"
+  - job_name: "node_exporter_machine"
     static_configs:
-      - targets: ["10.100.0.114:9100"]
+      - targets: ["IP_MACHINE:9100"]
         labels:
-          team: "securite"
+          team: "team"
           env: "linux"
 
-  - job_name: "node_exporter_vmsecu2"
+  - job_name: "node_exporter_machine"
     static_configs:
-      - targets: ["10.100.0.166:9100"]
+      - targets: ["IP_MACHINE:9100"]
         labels:
-          team: "securite"
+          team: "team"
           env: "linux"
 
-  - job_name: "node_exporter_vm-inventaire"
+  - job_name: "node_exporter_machine"
     static_configs:
-      - targets: ["10.100.0.113:9100"]
+      - targets: ["IP_MACHINE:9100"]
         labels:
-          team: "securite"
+          team: "team"
           env: "linux"
 
-  - job_name: "node_exporter_irisdev"
+  - job_name: "node_exporter_machine"
     static_configs:
-      - targets: ["10.100.0.245:9100"]
+      - targets: ["IP_MACHINE:9100"]
         labels:
-          team: "csdata"
+          team: "team"
           env: "linux"
 
-  - job_name: "node_exporter_gitlab"
+  - job_name: "node_exporter_machine"
     static_configs:
-      - targets: ["10.100.0.98:9100"]
+      - targets: ["IP_MACHINE:9100"]
         labels:
-          team: "csdata"
+          team: "team"
           env: "linux"
 
-  - job_name: "node_exporter_serveur_mdm"
+  - job_name: "node_exporter_machine"
     static_configs:
-      - targets: ["10.100.0.226:9100"]
+      - targets: ["IP_MACHINE:9100"]
         labels:
-          team: "csdata"
+          team: "team"
           env: "windows"
 
-  - job_name: "node_exporter_serveur_bo"
+  - job_name: "node_exporter_machine"
     static_configs:
-      - targets: ["10.100.0.210:9100"]
+      - targets: ["IP_MACHINE:9100"]
         labels:
-          team: "csdata"
+          team: "team"
           env: "windows"
 
-  - job_name: "node_exporter_oracle_server"
+  - job_name: "node_exporter_machine"
     static_configs:
-      - targets: ["10.100.0.9:9100"]
+      - targets: ["IP_MACHINE:9100"]
         labels:
-          team: "csdata"
+          team: "team"
           env: "windows"
 
-  - job_name: "node_exporter_serveur_odi"
+  - job_name: "node_exporter_machine"
     static_configs:
-      - targets: ["10.100.0.133:9100"]
+      - targets: ["IP_MACHINE:9100"]
         labels:
-          team: "csdata"
+          team: "team"
           env: "windows"
 
-  - job_name: "node_exporter_gateway_vnf"
+  - job_name: "node_exporter_machine"
     static_configs:
-      - targets: ["10.100.0.87:9100"]
+      - targets: ["IP_MACHINE:9100"]
         labels:
-          team: "csdata"
+          team: "team"
           env: "windows"
 
-  - job_name: "node_exporter_rpa_uipath"
+  - job_name: "node_exporter_machine"
     static_configs:
-      - targets: ["10.100.0.202:9100"]
+      - targets: ["IP_MACHINE:9100"]
         labels:
-          team: "securite"
+          team: "team"
           env: "windows"
 
   # Vérification UP / DOWN des dockers
   - job_name: "docker-custom-exporter"
     static_configs:
       - targets:
-          - "10.100.0.114:9101" # vmsecu4
-          - "10.100.0.166:9101" # vmsecu2
-          - "10.100.0.113:9101" # vm-inventaire
+          - "IP_MACHINE:9101" # machine
+          - "IP_MACHINE:9101" # machine
+          - "IP_MACHINE:9101" # machine
 
   # Supervision BDD PostgreSQL
-  - job_name: "postgres_exporter_vm-inventaire"
+  - job_name: "postgres_exporter_machine"
     static_configs:
-      - targets: ["10.100.0.113:9187"]
+      - targets: ["IP_MACHINE:9187"]
         labels:
           team: "securite"
 
@@ -112,33 +112,33 @@ scrape_configs:
       module: [https_2xx]
     static_configs:
       - targets:
-          - https://5.196.245.236:3000
+          - https://0.0.0.0:3000
         labels:
-          service: "Grafana"
+          service: "Service"
       - targets:
-          - https://91.134.72.37:1443
+          - https://0.0.0.0:1443
         labels:
-          service: "SonarQube"
+          service: "Service"
       - targets:
-          - https://5.196.245.236
+          - https://0.0.0.0
         labels:
-          service: "Wazuh"
+          service: "Service"
       - targets:
-          - https://91.134.72.37:8443
+          - https://0.0.0.0:8443
         labels:
-          service: "Keycloak"
+          service: "Service"
       - targets:
-          - https://91.134.72.37:3443
+          - https://0.0.0.0:3443
         labels:
-          service: "Nexus"
+          service: "Service"
       - targets:
-          - https://91.134.72.37
+          - https://0.0.0.0
         labels:
-          service: "Harbor"
+          service: "Service"
     relabel_configs:
       - source_labels: [__address__]
         target_label: __param_target
       - source_labels: [__param_target]
         target_label: instance
       - target_label: __address__
-        replacement: 10.100.0.114:9115
+        replacement: IP_MACHINE:9115
