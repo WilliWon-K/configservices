@@ -69,6 +69,6 @@ if __name__ == "__main__":
             app, 
             host="0.0.0.0", 
             port=8001,
-            ssl_keyfile="/home/debian/django-DefectDojo/nginx/certs/defectdojo.key",
-            ssl_certfile="/home/debian/django-DefectDojo/nginx/certs/defectdojo.crt",
+            ssl_keyfile="/chemin/vers/certs/defectdojo.key",
+            ssl_certfile="/chemin/vers/certs/defectdojo.crt",
     )
