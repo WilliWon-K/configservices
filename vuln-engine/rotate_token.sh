@@ -4,7 +4,7 @@
 
 NEW_TOKEN=$(curl -k -s -X POST https://localhost:8444/api/v2/api-token-auth/ \
   -H "Content-Type: application/json" \
-  -d '{"username":"will","password":"MDP"}' | python3 -c "import sys,json; print(json.load(sys.stdin)['token'])")
+  -d '{"username":"user","password":"MDP"}' | python3 -c "import sys,json; print(json.load(sys.stdin)['token'])")
 
 if [ -z "$NEW_TOKEN" ]; then
     echo "❌ Échec de la rotation"
